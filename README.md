@@ -42,8 +42,7 @@ dotnet run
 ## Step 4: Access
 
 Open your browser:
-- **HTTPS**: https://localhost:5001
-- **HTTP**: http://localhost:5000
+- **HTTP**: http://localhost:5281
 
 **That's it!** Your dashboard should be running. First load takes 5-15 seconds.
 
