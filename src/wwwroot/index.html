@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Insights Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📊 GitHub Insights</h1>
+        <p class="subtitle">Organization Repository Analytics</p>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="quickStats" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card fade-in">
+                    <div class="stat-label">Total Repositories</div>
+                    <div class="stat-value large" id="repoCount">-</div>
+                    <div class="stat-label" style="opacity: 0.7; margin-top: 10px;">
+                        Organization: <strong id="orgName">-</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="detailedStats" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card fade-in">
+                    <div class="stat-label">⭐ Total Stars</div>
+                    <div class="stat-value" id="totalStars">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">🍴 Total Forks</div>
+                    <div class="stat-value" id="totalForks">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">👀 Total Watchers</div>
+                    <div class="stat-value" id="totalWatchers">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">🐛 Open Issues</div>
+                    <div class="stat-value" id="totalOpenIssues">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">🔀 Open PRs</div>
+                    <div class="stat-value" id="totalOpenPRs">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">✅ Merged PRs</div>
+                    <div class="stat-value" id="totalClosedPRs">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">👥 Internal Contributors</div>
+                    <div class="stat-value" id="totalInternalContributors">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">🌍 External Contributors</div>
+                    <div class="stat-value" id="totalExternalContributors">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">📢 Estimated Follower Reach</div>
+                    <div class="stat-value" id="followerReach">-</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-label">📦 Dependent Repositories</div>
+                    <div class="stat-value" id="dependentRepos">-</div>
+                    <div class="stat-sublabel" id="dependentDetails" style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.8;"></div>
+                </div>
+            </div>
+
+            <!-- Detailed Insights Section -->
+            <div id="detailedInsightsSection" style="display: none;">
+                <div class="insights-section fade-in">
+                    <h2 class="section-title">📈 Detailed Insights</h2>
+                    
+                    <!-- Activity Summary Cards -->
+                    <div class="activity-summary">
+                        <div class="activity-card">
+                            <div class="activity-label">Total Engagement</div>
+                            <div class="activity-value" id="totalEngagement">-</div>
+                            <div class="activity-sublabel">Stars + Forks</div>
+                        </div>
+                        <div class="activity-card">
+                            <div class="activity-label">Active Repos</div>
+                            <div class="activity-value" id="activeRepos">-</div>
+                            <div class="activity-sublabel">Updated in 30 days</div>
+                        </div>
+                        <div class="activity-card">
+                            <div class="activity-label">Avg Stars</div>
+                            <div class="activity-value" id="avgStars">-</div>
+                            <div class="activity-sublabel">Per Repository</div>
+                        </div>
+                        <div class="activity-card">
+                            <div class="activity-label">Avg Forks</div>
+                            <div class="activity-value" id="avgForks">-</div>
+                            <div class="activity-sublabel">Per Repository</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Repositories Table -->
+                    <div class="insight-card">
+                        <h3 class="card-title">🏆 Top 10 Most Active Repositories</h3>
+                        <div class="table-container">
+                            <table id="topReposTable" class="repos-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Repository</th>
+                                        <th>Language</th>
+                                        <th>⭐ Stars</th>
+                                        <th>🍴 Forks</th>
+                                        <th>🐛 Issues</th>
+                                        <th>📊 Activity</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="topReposBody">
+                                    <tr><td colspan="7" style="text-align: center; padding: 2rem; opacity: 0.7;">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Repository Health Overview -->
+                    <div class="health-overview">
+                        <div class="health-card health-healthy">
+                            <div class="health-icon">🟢</div>
+                            <div class="health-content">
+                                <div class="health-value" id="healthyCount">-</div>
+                                <div class="health-label">Healthy</div>
+                                <div class="health-sublabel">Active & maintained</div>
+                            </div>
+                        </div>
+                        <div class="health-card health-attention">
+                            <div class="health-icon">🟡</div>
+                            <div class="health-content">
+                                <div class="health-value" id="needsAttentionCount">-</div>
+                                <div class="health-label">Needs Attention</div>
+                                <div class="health-sublabel">High issues or aging</div>
+                            </div>
+                        </div>
+                        <div class="health-card health-atrisk">
+                            <div class="health-icon">🔴</div>
+                            <div class="health-content">
+                                <div class="health-value" id="atRiskCount">-</div>
+                                <div class="health-label">At Risk</div>
+                                <div class="health-sublabel">Stale (180+ days)</div>
+                            </div>
+                        </div>
+                        <div class="health-card health-archived">
+                            <div class="health-icon">📦</div>
+                            <div class="health-content">
+                                <div class="health-value" id="archivedCount">-</div>
+                                <div class="health-label">Archived</div>
+                                <div class="health-sublabel" id="stalePercentage">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Details Cards -->
+                    <div class="health-details" id="healthDetailsSection" style="display: none;">
+                        <div class="insight-card" id="needsAttentionCard" style="display: none;">
+                            <h3 class="card-title">⚠️ Repositories Needing Attention</h3>
+                            <div class="health-list" id="needsAttentionList"></div>
+                        </div>
+                        <div class="insight-card" id="atRiskCard" style="display: none;">
+                            <h3 class="card-title">🚨 At-Risk Repositories</h3>
+                            <div class="health-list" id="atRiskList"></div>
+                        </div>
+                    </div>
+
+                    <!-- Top Contributors -->
+                    <div class="insight-card">
+                        <h3 class="card-title">👥 Top Contributors</h3>
+                        <div id="topContributors">
+                            <div style="text-align: center; padding: 2rem; opacity: 0.7;">Loading contributors...</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Contributors Table -->
+                    <div class="insight-card">
+                        <h3 class="card-title">👥 Top 10 Contributors</h3>
+                        <div class="table-container">
+                            <table id="topContributorsTable" class="repos-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Contributor</th>
+                                        <th>Type</th>
+                                        <th>📝 Contributions</th>
+                                        <th>👥 Followers</th>
+                                        <th>📊 Repos</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="topContributorsBody">
+                                    <tr><td colspan="6" style="text-align: center; padding: 2rem; opacity: 0.7;">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Language Distribution -->
+                    <div class="insight-card">
+                        <h3 class="card-title">💻 Language Distribution</h3>
+                        <div id="languageDistribution"></div>
+                    </div>
+
+                    <!-- Top Packages by Usage -->
+                    <div class="insight-card" id="topDependentsCard">
+                        <h3 class="card-title">📦 Top Packages by External Usage</h3>
+                        <div id="topDependentsList">
+                            <div class="loading-state" style="text-align: center; padding: 2rem; opacity: 0.7;">
+                                <div>🔍 Analyzing package usage...</div>
+                                <div style="font-size: 0.85rem; margin-top: 0.5rem;">Checking dependent repositories</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingDetails" class="loading" style="display: none;">
+            <p class="loading-text">Loading detailed statistics<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></p>
+        </div>
+
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
