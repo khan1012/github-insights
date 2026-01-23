@@ -22,6 +22,7 @@ public abstract class GitHubServiceTestBase
     protected readonly Mock<ILogger<ContributorAnalyzer>> MockContributorLogger;
     protected readonly IMemoryCache Cache;
     protected readonly GitHubOptions Options;
+    protected readonly PerformanceOptions PerformanceOptions;
 
     protected GitHubServiceTestBase()
     {
@@ -33,9 +34,15 @@ public abstract class GitHubServiceTestBase
         Cache = new MemoryCache(new MemoryCacheOptions());
         Options = new GitHubOptions
         {
-            Organization = "test-org",
-            Token = "test-token",
+            Organization = "microsoft",
+            Token = "ghp_testtoken123",
             CacheDurationMinutes = 5
+        };
+        PerformanceOptions = new PerformanceOptions
+        {
+            MaxConcurrentRequests = 10,
+            HealthCheckStaleDays = 180,
+            HealthCheckAttentionDays = 30
         };
     }
 
@@ -69,7 +76,10 @@ public abstract class GitHubServiceTestBase
     /// </summary>
     protected ContributorAnalyzer CreateContributorAnalyzer()
     {
-        return new ContributorAnalyzer(Microsoft.Extensions.Options.Options.Create(Options), MockContributorLogger.Object);
+        return new ContributorAnalyzer(
+            Microsoft.Extensions.Options.Options.Create(Options),
+            Microsoft.Extensions.Options.Options.Create(PerformanceOptions),
+            MockContributorLogger.Object);
     }
 
     /// <summary>

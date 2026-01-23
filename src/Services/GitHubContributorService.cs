@@ -50,7 +50,7 @@ public class GitHubContributorService : IGitHubContributorService
 
         _logger.LogInformation("Fetching contributor statistics from GitHub API for organization {Organization}", _options.Organization);
 
-        using var client = _apiClient.CreateClient();
+        var client = _apiClient.CreateClient();
 
         try
         {

@@ -459,6 +459,7 @@ public class GitHubRepositoryServiceTests : GitHubServiceTestBase
             new Mock<ILogger<RepositoryDependencyAnalyzer>>().Object);
         var healthAnalyzer = new RepositoryHealthAnalyzer(
             Microsoft.Extensions.Options.Options.Create(Options),
+            Microsoft.Extensions.Options.Options.Create(PerformanceOptions),
             cachingService,
             apiClient,
             CreateRepositoryFetcher(),
@@ -566,6 +567,7 @@ public class GitHubRepositoryServiceTests : GitHubServiceTestBase
             new Mock<ILogger<RepositoryDependencyAnalyzer>>().Object);
         var healthAnalyzer = new RepositoryHealthAnalyzer(
             Microsoft.Extensions.Options.Options.Create(Options),
+            Microsoft.Extensions.Options.Options.Create(PerformanceOptions),
             cachingService,
             apiClient,
             CreateRepositoryFetcher(),

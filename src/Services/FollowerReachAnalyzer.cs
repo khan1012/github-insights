@@ -47,7 +47,7 @@ public class FollowerReachAnalyzer : IFollowerReachAnalyzer
 
         try
         {
-            using var client = _apiClient.CreateClient();
+            var client = _apiClient.CreateClient();
 
             var allRepos = await _repositoryFetcher.FetchAllRepositoriesAsync(client, cancellationToken);
 

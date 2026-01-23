@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  github-insights:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: github-insights-app
+    ports:
+      - "5281:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - GitHub__Organization=${GITHUB_ORG:-microsoft}
+      - GitHub__Token=${GITHUB_TOKEN:-}
+      - GitHub__CacheDurationMinutes=5
+      - GitHub__MaxRepositories=100
+      - GitHub__MaxRepositoriesForContributorAnalysis=20
+      - Performance__MaxConcurrentRequests=10
+      - Resilience__MaxRetries=3
+      - Resilience__BaseDelaySeconds=2
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - github-insights-network
+
+networks:
+  github-insights-network:
+    driver: bridge
