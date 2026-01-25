@@ -203,7 +203,7 @@ try
 
     Log.Information("Application started successfully");
     Log.Information("Environment: {Environment}", app.Environment.EnvironmentName);
-    Log.Information("Swagger UI available at: /api-docs");
+    Log.Information("Scalar UI available at: /scalar/v1");
 
     app.Run();
 }
