@@ -1,7 +1,6 @@
 using FluentAssertions;
 using GitHubInsights.Middleware;
 using GitHubInsights.Models;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -337,5 +336,258 @@ public class ErrorHandlingMiddlewareTests
 
         // Assert
         context.Response.ContentType.Should().Be("application/json");
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldHandleOptionsValidationException_ForOrganization()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        RequestDelegate next = (HttpContext ctx) =>
+        {
+            throw new Microsoft.Extensions.Options.OptionsValidationException(
+                "GitHubOptions",
+                typeof(GitHubInsights.Configuration.GitHubOptions),
+                new[] { "The Organization field is required." });
+        };
+
+        _mockEnvironment.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var middleware = new ErrorHandlingMiddleware(next, _mockLogger.Object, _mockEnvironment.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadRequest);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        responseBody.Should().Contain("GitHub Organization Not Configured");
+        responseBody.Should().Contain("Open appsettings.json");
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldHandleOptionsValidationException_ForToken()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        RequestDelegate next = (HttpContext ctx) =>
+        {
+            throw new Microsoft.Extensions.Options.OptionsValidationException(
+                "GitHubOptions",
+                typeof(GitHubInsights.Configuration.GitHubOptions),
+                new[] { "The Token field is invalid." });
+        };
+
+        _mockEnvironment.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var middleware = new ErrorHandlingMiddleware(next, _mockLogger.Object, _mockEnvironment.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadRequest);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        responseBody.Should().Contain("Invalid GitHub Token Configuration");
+        responseBody.Should().Contain("ghp_");
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldHandleOptionsValidationException_ForOtherErrors()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        RequestDelegate next = (HttpContext ctx) =>
+        {
+            throw new Microsoft.Extensions.Options.OptionsValidationException(
+                "PerformanceOptions",
+                typeof(object),
+                new[] { "MaxConcurrentRequests must be positive." });
+        };
+
+        _mockEnvironment.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var middleware = new ErrorHandlingMiddleware(next, _mockLogger.Object, _mockEnvironment.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadRequest);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        responseBody.Should().Contain("Configuration Error");
+        responseBody.Should().Contain("MaxConcurrentRequests must be positive.");
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldReturn502_ForHttpRequestException()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        RequestDelegate next = (HttpContext ctx) =>
+        {
+            throw new HttpRequestException("GitHub API unavailable");
+        };
+
+        _mockEnvironment.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var middleware = new ErrorHandlingMiddleware(next, _mockLogger.Object, _mockEnvironment.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadGateway);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        var apiError = JsonSerializer.Deserialize<ApiError>(responseBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        apiError.Should().NotBeNull();
+        apiError!.Message.Should().Be("GitHub API unavailable");
+        apiError.StatusCode.Should().Be(502);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldFormatJsonWithIndentation_InDevelopmentEnvironment()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        RequestDelegate next = (HttpContext ctx) =>
+        {
+            throw new InvalidOperationException("Test exception");
+        };
+
+        _mockEnvironment.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var middleware = new ErrorHandlingMiddleware(next, _mockLogger.Object, _mockEnvironment.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        // In development, JSON should be indented (contains newlines)
+        responseBody.Should().Contain("\n");
+        responseBody.Should().Contain("  "); // Indentation spaces
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldFormatJsonWithoutIndentation_InProductionEnvironment()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        RequestDelegate next = (HttpContext ctx) =>
+        {
+            throw new InvalidOperationException("Test exception");
+        };
+
+        _mockEnvironment.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var middleware = new ErrorHandlingMiddleware(next, _mockLogger.Object, _mockEnvironment.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        // In production, JSON should be compact (single line)
+        var lines = responseBody.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        lines.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldHideInternalErrorDetails_InProduction()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        RequestDelegate next = (HttpContext ctx) =>
+        {
+            throw new Exception("Database connection string: server=secret;password=123");
+        };
+
+        _mockEnvironment.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var middleware = new ErrorHandlingMiddleware(next, _mockLogger.Object, _mockEnvironment.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        var apiError = JsonSerializer.Deserialize<ApiError>(responseBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        apiError.Should().NotBeNull();
+        apiError!.Message.Should().Be("An internal server error occurred. Please check the logs for details.");
+        apiError.Message.Should().NotContain("Database");
+        apiError.Message.Should().NotContain("password");
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldShowActualErrorMessage_InDevelopment()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        RequestDelegate next = (HttpContext ctx) =>
+        {
+            throw new Exception("Detailed error for debugging");
+        };
+
+        _mockEnvironment.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var middleware = new ErrorHandlingMiddleware(next, _mockLogger.Object, _mockEnvironment.Object);
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        var apiError = JsonSerializer.Deserialize<ApiError>(responseBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        apiError.Should().NotBeNull();
+        apiError!.Message.Should().Be("Detailed error for debugging");
     }
 }
