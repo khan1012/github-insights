@@ -32,7 +32,7 @@ public class CachingServiceTests
         // Arrange
         var key = "test-key";
         var expectedValue = "test-value";
-        object cacheValue = expectedValue;
+        object? cacheValue = expectedValue;
         
         _mockCache
             .Setup(x => x.TryGetValue(key, out cacheValue))

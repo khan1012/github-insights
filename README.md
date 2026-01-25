@@ -96,7 +96,7 @@ dotnet run
 ### 🌐 Access the Application
 
 - **Dashboard**: http://localhost:5281
-- **API Docs (Swagger)**: http://localhost:5281/api-docs
+- **API Docs (Scalar)**: http://localhost:5281/scalar/v1
 - **Health Check**: http://localhost:5281/health
 
 ---

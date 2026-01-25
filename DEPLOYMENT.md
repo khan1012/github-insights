@@ -42,7 +42,7 @@ dotnet run
 
 ### 4. Access Application
 - **API**: http://localhost:5281
-- **Swagger**: http://localhost:5281/api-docs
+- **API Docs (Scalar)**: http://localhost:5281/scalar/v1
 - **Health Check**: http://localhost:5281/health
 - **Dashboard**: http://localhost:5281/index.html
 
@@ -68,7 +68,7 @@ docker-compose up
 
 ### 3. Access Application
 - **API**: http://localhost:5281
-- **Swagger**: http://localhost:5281/api-docs
+- **API Docs (Scalar)**: http://localhost:5281/scalar/v1
 - **Health Check**: http://localhost:5281/health
 
 ---
@@ -301,7 +301,7 @@ The project includes GitHub Actions workflows:
 - **Logging**: Serilog with file/console sinks
 - **Resilience**: Polly (retry, circuit breaker)
 - **Caching**: In-memory with configurable TTL
-- **API Docs**: Swagger/OpenAPI
+- **API Docs**: Scalar (OpenAPI)
 - **Rate Limiting**: AspNetCoreRateLimit
 - **Testing**: xUnit, Moq, FluentAssertions
 
