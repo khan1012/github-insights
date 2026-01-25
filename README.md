@@ -1,8 +1,8 @@
 # GitHub Insights Dashboard
 
-> **Enterprise-grade analytics platform for GitHub organizations** - Built with ASP.NET Core 8.0
+> **Enterprise-grade analytics platform for GitHub organizations** - Built with ASP.NET Core 10.0
 
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/download/dotnet/8.0)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/download/dotnet/10.0)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ready-2496ED)](https://www.docker.com/)
 
@@ -60,7 +60,7 @@ Comprehensive analytics dashboard that provides deep insights into your GitHub o
 ### Prerequisites
 
 **Option 1: .NET SDK**
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later
 - macOS, Linux, or Windows
 
 **Option 2: Docker** (Recommended)
@@ -252,7 +252,7 @@ github-insights/
 
 ### Technology Stack
 
-- **Backend**: ASP.NET Core 8.0
+- **Backend**: ASP.NET Core 10.0
 - **Logging**: Serilog (console + file)
 - **Resilience**: Polly (retry + circuit breaker)
 - **Documentation**: Swagger/OpenAPI

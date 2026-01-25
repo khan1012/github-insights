@@ -3,7 +3,7 @@
 ## Prerequisites
 
 ### Option 1: .NET SDK (Direct Run)
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later
 - macOS, Linux, or Windows
 
 ### Option 2: Docker (Recommended)
@@ -19,7 +19,7 @@
 # macOS (via Homebrew)
 brew install --cask dotnet-sdk
 
-# Or download from: https://dotnet.microsoft.com/download/dotnet/8.0
+# Or download from: https://dotnet.microsoft.com/download/dotnet/10.0
 ```
 
 ### 2. Configure Application
@@ -245,7 +245,7 @@ brew install --cask dotnet-sdk
 # Linux (Ubuntu/Debian)
 wget https://dot.net/v1/dotnet-install.sh
 chmod +x dotnet-install.sh
-./dotnet-install.sh --channel 8.0
+./dotnet-install.sh --channel 10.0
 ```
 
 ### Docker Build Fails
@@ -297,7 +297,7 @@ The project includes GitHub Actions workflows:
 ## Architecture
 
 ### Technology Stack
-- **Framework**: ASP.NET Core 8.0
+- **Framework**: ASP.NET Core 10.0
 - **Logging**: Serilog with file/console sinks
 - **Resilience**: Polly (retry, circuit breaker)
 - **Caching**: In-memory with configurable TTL

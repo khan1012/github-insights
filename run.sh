@@ -8,9 +8,9 @@ echo "========================================"
 if ! command -v dotnet &> /dev/null; then
     echo "❌ .NET SDK not found"
     echo ""
-    echo "Please install .NET 8 SDK:"
+    echo "Please install .NET 10 SDK:"
     echo "  macOS: brew install --cask dotnet-sdk"
-    echo "  Or download from: https://dotnet.microsoft.com/download/dotnet/8.0"
+    echo "  Or download from: https://dotnet.microsoft.com/download/dotnet/10.0"
     exit 1
 fi
 

@@ -5,14 +5,10 @@ using GitHubInsights.Middleware;
 using GitHubInsights.Services;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
 using Serilog;
 using Serilog.Events;
-using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,26 +59,20 @@ builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
 // Configure Swagger/OpenAPI
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddOpenApi(options =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
-        Title = "GitHub Insights API",
-        Version = "v1",
-        Description = "API for analyzing GitHub organization metrics and insights",
-        Contact = new OpenApiContact
+        document.Info.Title = "GitHub Insights API";
+        document.Info.Version = "v1";
+        document.Info.Description = "API for analyzing GitHub organization metrics and insights";
+        document.Info.Contact = new()
         {
             Name = "GitHub Insights",
             Url = new Uri("https://github.com/your-repo")
-        }
+        };
+        return Task.CompletedTask;
     });
-
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
 });
 
 // Configure HttpClient with Polly resilience policies
@@ -154,11 +144,11 @@ try
     // Configure the HTTP request pipeline
     if (app.Environment.IsDevelopment())
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(c =>
+        app.MapOpenApi();
+        app.UseSwaggerUI(options =>
         {
-            c.SwaggerEndpoint("/swagger/v1/swagger.json", "GitHub Insights API v1");
-            c.RoutePrefix = "api-docs";
+            options.SwaggerEndpoint("/openapi/v1.json", "GitHub Insights API v1");
+            options.RoutePrefix = "swagger";
         });
     }
 
