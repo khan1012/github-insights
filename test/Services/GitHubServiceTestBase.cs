@@ -34,7 +34,7 @@ public abstract class GitHubServiceTestBase
         Cache = new MemoryCache(new MemoryCacheOptions());
         Options = new GitHubOptions
         {
-            Organization = "microsoft",
+            Organization = "test-org",
             Token = "ghp_testtoken123",
             CacheDurationMinutes = 5
         };

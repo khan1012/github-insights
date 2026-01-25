@@ -37,33 +37,6 @@ public class GitHubHttpClientHelper
                 "4. Restart the application");
         }
 
-        // Check for common placeholder patterns
-        var invalidPatterns = new[] 
-        { 
-            "your-org", "your-github-org", "organization", 
-            "example", "test", "xxx", "placeholder",
-            "asdndbf", "asdfgh", "qwerty" // random keyboard mashing
-        };
-
-        var orgLower = _options.Organization.ToLowerInvariant();
-        if (invalidPatterns.Any(pattern => orgLower.Contains(pattern)))
-        {
-            _logger.LogWarning(
-                "Organization name appears to be a placeholder: {Organization}",
-                _options.Organization);
-            
-            throw new InvalidOperationException(
-                "❌ Invalid GitHub Organization Name\n\n" +
-                $"Your organization name appears to be a placeholder: '{_options.Organization}'\n\n" +
-                "Please replace it with a real GitHub organization name:\n" +
-                "1. Find your organization on GitHub (e.g., https://github.com/microsoft)\n" +
-                "2. Copy the exact organization name\n" +
-                "3. Update appsettings.json: \"Organization\": \"real-org-name\"\n" +
-                "4. Organization name is case-sensitive\n" +
-                "5. Restart the application\n\n" +
-                "Example organizations: microsoft, google, facebook, netflix");
-        }
-
         // Validate organization name format (GitHub requirements)
         if (_options.Organization.Length > 39)
         {
@@ -73,17 +46,18 @@ public class GitHubHttpClientHelper
                 "GitHub organization names must be 39 characters or less.");
         }
 
-        // Check for invalid characters
-        if (!System.Text.RegularExpressions.Regex.IsMatch(_options.Organization, @"^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$"))
+        // Check for invalid characters and format (no consecutive hyphens, proper start/end)
+        if (!System.Text.RegularExpressions.Regex.IsMatch(_options.Organization, @"^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$"))
         {
             throw new InvalidOperationException(
                 "❌ Invalid Organization Name Format\n\n" +
                 $"Organization name '{_options.Organization}' contains invalid characters.\n\n" +
                 "GitHub organization names must:\n" +
                 "• Start and end with alphanumeric characters\n" +
-                "• Can contain hyphens (-) in the middle\n" +
+                "• Can contain single hyphens (-) between alphanumeric segments\n" +
+                "• Cannot contain consecutive hyphens (--)\n" +
                 "• Cannot contain spaces, underscores, or special characters\n\n" +
-                "Example: 'my-org' is valid, 'my_org' or 'my org' are not.");
+                "Example: 'my-org' is valid, 'my--org', 'my_org' or 'my org' are not.");
         }
     }
 

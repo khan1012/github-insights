@@ -134,6 +134,6 @@ public class GitHubHttpClientHelperTests
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*status code 500*");
+            .WithMessage("*HTTP 500*");
     }
 }

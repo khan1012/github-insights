@@ -41,7 +41,7 @@ public class ConfigurationOptionsTests
 
         // Assert
         results.Should().ContainSingle();
-        results.First().ErrorMessage.Should().Contain("Organization");
+        results.First().ErrorMessage.Should().Contain("organization");
     }
 
     [Fact]

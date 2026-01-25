@@ -183,7 +183,7 @@ public class ErrorHandlingMiddlewareTests
         });
 
         apiError.Should().NotBeNull();
-        apiError!.Message.Should().Be("Unexpected error");
+        apiError!.Message.Should().Be("An internal server error occurred. Please check the logs for details.");
         apiError.StatusCode.Should().Be(500);
     }
 
