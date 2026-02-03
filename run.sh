@@ -27,6 +27,29 @@ if command -v docker &> /dev/null; then
     
     if [ "$choice" = "2" ]; then
         echo ""
+        
+        # Check if GITHUB_TOKEN is set
+        if [ -z "$GITHUB_TOKEN" ]; then
+            echo "⚠️  GITHUB_TOKEN environment variable is not set"
+            echo ""
+            echo "Without a token, you'll be limited to 60 API requests/hour."
+            echo "With a token, you get 5,000 API requests/hour."
+            echo ""
+            echo "To set the token:"
+            echo "  Git Bash:      export GITHUB_TOKEN=ghp_your_token"
+            echo "  PowerShell:    \$env:GITHUB_TOKEN=\"ghp_your_token\""
+            echo ""
+            read -p "Continue without token? [y/N]: " continue_choice
+            
+            if [[ ! "$continue_choice" =~ ^[Yy]$ ]]; then
+                echo "❌ Cancelled. Please set GITHUB_TOKEN and try again."
+                exit 1
+            fi
+        else
+            echo "✅ GITHUB_TOKEN is set"
+        fi
+        
+        echo ""
         echo "📦 Building Docker image..."
         docker build -t github-insights:latest .
         
@@ -35,13 +58,15 @@ if command -v docker &> /dev/null; then
         docker run -d \
             --name github-insights \
             -p 5281:8080 \
+            -e ASPNETCORE_ENVIRONMENT=Development \
             -e GitHub__Organization=microsoft \
+            -e GitHub__Token="${GITHUB_TOKEN:-}" \
             github-insights:latest
         
         echo ""
         echo "✅ Application running in Docker!"
         echo "   API: http://localhost:5281"
-        echo "   Swagger: http://localhost:5281/api-docs"
+        echo "   Scalar: http://localhost:5281/scalar/v1"
         echo "   Health: http://localhost:5281/health"
         echo ""
         echo "Stop with: docker stop github-insights"
@@ -64,7 +89,7 @@ dotnet build --no-restore
 echo ""
 echo "🎯 Starting application..."
 echo "   API: http://localhost:5281"
-echo "   Swagger: http://localhost:5281/api-docs"
+echo "   Scalar: http://localhost:5281/scalar/v1"
 echo "   Health: http://localhost:5281/health"
 echo ""
 echo "Press Ctrl+C to stop"

@@ -58,19 +58,14 @@ builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection(
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
-// Configure Swagger/OpenAPI
+// Configure OpenAPI
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
         document.Info.Title = "GitHub Insights API";
         document.Info.Version = "v1";
-        document.Info.Description = "API for analyzing GitHub organization metrics and insights";
-        document.Info.Contact = new()
-        {
-            Name = "GitHub Insights",
-            Url = new Uri("https://github.com/your-repo")
-        };
+        document.Info.Description = "API for analyzing GitHub organization metrics and insights including repository health, contributor statistics, and detailed activity breakdowns";
         return Task.CompletedTask;
     });
 });

@@ -255,7 +255,7 @@ github-insights/
 - **Backend**: ASP.NET Core 10.0
 - **Logging**: Serilog (console + file)
 - **Resilience**: Polly (retry + circuit breaker)
-- **Documentation**: Swagger/OpenAPI
+- **Documentation**: Scalar/OpenAPI
 - **Testing**: xUnit, Moq, FluentAssertions
 - **Caching**: In-memory with configurable TTL
 - **Rate Limiting**: AspNetCoreRateLimit
