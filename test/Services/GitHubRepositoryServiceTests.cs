@@ -1,17 +1,12 @@
 using FluentAssertions;
-using GitHubInsights.Configuration;
 using GitHubInsights.Constants;
-using GitHubInsights.Helpers;
 using GitHubInsights.Models;
-using GitHubInsights.Models.GitHub;
 using GitHubInsights.Services;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using System.Net;
-using System.Text.Json;
 
 namespace GitHubInsights.Tests.Services;
 
@@ -459,6 +454,7 @@ public class GitHubRepositoryServiceTests : GitHubServiceTestBase
             new Mock<ILogger<RepositoryDependencyAnalyzer>>().Object);
         var healthAnalyzer = new RepositoryHealthAnalyzer(
             Microsoft.Extensions.Options.Options.Create(Options),
+            Microsoft.Extensions.Options.Options.Create(PerformanceOptions),
             cachingService,
             apiClient,
             CreateRepositoryFetcher(),
@@ -566,6 +562,7 @@ public class GitHubRepositoryServiceTests : GitHubServiceTestBase
             new Mock<ILogger<RepositoryDependencyAnalyzer>>().Object);
         var healthAnalyzer = new RepositoryHealthAnalyzer(
             Microsoft.Extensions.Options.Options.Create(Options),
+            Microsoft.Extensions.Options.Options.Create(PerformanceOptions),
             cachingService,
             apiClient,
             CreateRepositoryFetcher(),
@@ -599,11 +596,6 @@ public class GitHubRepositoryServiceTests : GitHubServiceTestBase
         public void AddHtmlResponse(string url, string htmlContent)
         {
             _responses[url] = htmlContent;
-        }
-
-        public void AddErrorResponse(string url, System.Net.HttpStatusCode statusCode)
-        {
-            _errorResponses[url] = statusCode;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -703,8 +695,8 @@ public class GitHubRepositoryServiceTests : GitHubServiceTestBase
         result.PackageRepositories.Should().Be(2);
         result.RepositoriesAnalyzed.Should().Be(2);
         result.TopRepositories.Should().HaveCount(2);
-        result.TopRepositories.First().Name.Should().Be("repo1");
-        result.TopRepositories.First().DependentCount.Should().Be(25);
+        result.TopRepositories[0].Name.Should().Be("repo1");
+        result.TopRepositories[0].DependentCount.Should().Be(25);
     }
 
     [Fact]
@@ -780,9 +772,9 @@ public class GitHubRepositoryServiceTests : GitHubServiceTestBase
         // Assert
         result.Should().NotBeNull();
         result.TopRepositories.Should().HaveCount(10); // Limited to top 10
-        result.TopRepositories.First().Name.Should().Be("repo15"); // Highest dependent count
-        result.TopRepositories.First().DependentCount.Should().Be(75); // 15 * 5
-        result.TopRepositories.Last().DependentCount.Should().Be(30); // 6 * 5
+        result.TopRepositories[0].Name.Should().Be("repo15"); // Highest dependent count
+        result.TopRepositories[0].DependentCount.Should().Be(75); // 15 * 5
+        result.TopRepositories[^1].DependentCount.Should().Be(30); // 6 * 5
     }
 
     [Fact]
@@ -817,7 +809,7 @@ public class GitHubRepositoryServiceTests : GitHubServiceTestBase
         result.TotalDependents.Should().Be(25); // Only repo1
         result.PackageRepositories.Should().Be(1); // Only repo1 counted
         result.TopRepositories.Should().HaveCount(1);
-        result.TopRepositories.First().Name.Should().Be("repo1");
+        result.TopRepositories[0].Name.Should().Be("repo1");
     }
 
     #region GetDetailedInsightsAsync Tests

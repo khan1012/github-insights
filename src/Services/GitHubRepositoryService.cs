@@ -55,7 +55,7 @@ public class GitHubRepositoryService : IGitHubRepositoryService
             "Fetching repository count from GitHub API for organization {Organization}",
             _options.Organization);
 
-        using var client = _apiClient.CreateClient();
+        var client = _apiClient.CreateClient();
 
         try
         {
@@ -106,7 +106,7 @@ public class GitHubRepositoryService : IGitHubRepositoryService
 
         _logger.LogInformation("Fetching detailed repository data from GitHub API for organization {Organization}", _options.Organization);
 
-        using var client = _apiClient.CreateClient();
+        var client = _apiClient.CreateClient();
 
         try
         {
@@ -150,7 +150,7 @@ public class GitHubRepositoryService : IGitHubRepositoryService
 
         _logger.LogInformation("Fetching basic repository data (without contributors) from GitHub API for organization {Organization}", _options.Organization);
 
-        using var client = _apiClient.CreateClient();
+        var client = _apiClient.CreateClient();
 
         try
         {

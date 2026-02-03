@@ -1,22 +1,84 @@
+using AspNetCoreRateLimit;
 using GitHubInsights.Configuration;
 using GitHubInsights.Helpers;
 using GitHubInsights.Middleware;
 using GitHubInsights.Services;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Extensions.Http;
+using Scalar.AspNetCore;
+using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure strongly-typed settings
-// Don't validate on start to allow app to run and show friendly errors in UI
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/github-insights-.log",
+        rollingInterval: RollingInterval.Day,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+        retainedFileCountLimit: 7)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+// Configure strongly-typed settings with validation on startup
 builder.Services.AddOptions<GitHubOptions>()
     .BindConfiguration(GitHubOptions.SectionName)
-    .ValidateDataAnnotations();
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<PerformanceOptions>()
+    .BindConfiguration(PerformanceOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<ResilienceOptions>()
+    .BindConfiguration(ResilienceOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 // Add services to the container
 builder.Services.AddControllers();
-builder.Services.AddHttpClient();
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddMemoryCache();
+
+// Configure IP rate limiting
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+// Configure OpenAPI
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info.Title = "GitHub Insights API";
+        document.Info.Version = "v1";
+        document.Info.Description = "API for analyzing GitHub organization metrics and insights including repository health, contributor statistics, and detailed activity breakdowns";
+        return Task.CompletedTask;
+    });
+});
+
+// Configure HttpClient with Polly resilience policies
+var resilienceOptions = builder.Configuration.GetSection(ResilienceOptions.SectionName).Get<ResilienceOptions>() ?? new ResilienceOptions();
+
+builder.Services.AddHttpClient("GitHubApi")
+    .AddPolicyHandler(GetRetryPolicy(resilienceOptions))
+    .AddPolicyHandler(GetCircuitBreakerPolicy(resilienceOptions))
+    .SetHandlerLifetime(TimeSpan.FromMinutes(5));
+
+builder.Services.AddHttpClient();
 
 // Register GitHubHttpClientHelper for dependency injection
 builder.Services.AddScoped<GitHubHttpClientHelper>();
@@ -42,24 +104,24 @@ builder.Services.AddScoped<IGitHubContributorService, GitHubContributorService>(
 builder.Services.AddHealthChecks()
     .AddCheck<GitHubHealthCheck>("github_api");
 
-// Configure CORS with specific origins (update for production)
+// Configure CORS from configuration
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            // Allow all in development for easier testing
             policy.AllowAnyOrigin()
                   .AllowAnyMethod()
                   .AllowAnyHeader();
         }
-        else
+        else if (allowedOrigins.Length > 0)
         {
-            // In production, specify allowed origins
-            policy.WithOrigins("https://yourdomain.com")
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyMethod()
-                  .AllowAnyHeader();
+                  .AllowAnyHeader()
+                  .AllowCredentials();
         }
     });
 });
@@ -67,57 +129,121 @@ builder.Services.AddCors(options =>
 // Add response caching
 builder.Services.AddResponseCaching();
 
-// Configure logging
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-
-if (builder.Environment.IsDevelopment())
-{
-    builder.Logging.SetMinimumLevel(LogLevel.Debug);
-}
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
-app.UseMiddleware<ErrorHandlingMiddleware>();
-
-app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
-app.UseResponseCaching();
-
-// Serve static files
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
-// Map controllers
-app.MapControllers();
-
-// Health check endpoints
-app.MapHealthChecks("/health", new HealthCheckOptions
+try
 {
-    ResponseWriter = async (context, report) =>
+    Log.Information("Starting GitHub Insights API...");
+
+    // Configure the HTTP request pipeline
+    if (app.Environment.IsDevelopment())
     {
-        context.Response.ContentType = "application/json";
-        var response = new
+        app.MapOpenApi();
+        app.MapScalarApiReference(options =>
         {
-            status = report.Status.ToString(),
-            checks = report.Entries.Select(e => new
-            {
-                name = e.Key,
-                status = e.Value.Status.ToString(),
-                description = e.Value.Description,
-                duration = e.Value.Duration.TotalMilliseconds
-            }),
-            totalDuration = report.TotalDuration.TotalMilliseconds
-        };
-        await context.Response.WriteAsJsonAsync(response);
+            options.WithTitle("GitHub Insights API");
+        });
     }
-});
 
-app.MapHealthChecks("/health/ready");
+    // Security headers
+    app.Use(async (context, next) =>
+    {
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+        context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        
+        if (!app.Environment.IsDevelopment())
+        {
+            context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+        }
+        
+        await next();
+    });
 
-app.Logger.LogInformation("Application started successfully");
-app.Logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentName);
+    app.UseMiddleware<ErrorHandlingMiddleware>();
+    app.UseIpRateLimiting();
+    app.UseHttpsRedirection();
+    app.UseCors("AllowFrontend");
+    app.UseResponseCaching();
 
-app.Run();
+    // Serve static files
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+
+    // Map controllers
+    app.MapControllers();
+
+    // Health check endpoints with detailed response
+    app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
+
+    app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    {
+        Predicate = _ => true,
+        ResponseWriter = async (context, report) =>
+        {
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(
+                System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    status = report.Status.ToString(),
+                    timestamp = DateTime.UtcNow
+                }));
+        }
+    });
+
+    Log.Information("Application started successfully");
+    Log.Information("Environment: {Environment}", app.Environment.EnvironmentName);
+    Log.Information("Scalar UI available at: /scalar/v1");
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}
+
+// Polly policy helpers
+static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(ResilienceOptions options)
+{
+    return HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        .WaitAndRetryAsync(
+            options.MaxRetries,
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(options.BaseDelaySeconds, retryAttempt)),
+            onRetry: (outcome, timespan, retryCount, context) =>
+            {
+                Log.Warning(
+                    "Retry {RetryCount} after {Delay}s due to {StatusCode}",
+                    retryCount,
+                    timespan.TotalSeconds,
+                    outcome.Result?.StatusCode);
+            });
+}
+
+static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy(ResilienceOptions options)
+{
+    return HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(
+            options.CircuitBreakerThreshold,
+            TimeSpan.FromSeconds(options.CircuitBreakerDurationSeconds),
+            onBreak: (outcome, duration) =>
+            {
+                Log.Error(
+                    "Circuit breaker opened for {Duration}s due to {StatusCode}",
+                    duration.TotalSeconds,
+                    outcome.Result?.StatusCode);
+            },
+            onReset: () => Log.Information("Circuit breaker reset"));
+}

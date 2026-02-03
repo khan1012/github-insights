@@ -13,13 +13,16 @@ namespace GitHubInsights.Services;
 public class ContributorAnalyzer : IContributorAnalyzer
 {
     private readonly GitHubOptions _options;
+    private readonly PerformanceOptions _performanceOptions;
     private readonly ILogger<ContributorAnalyzer> _logger;
 
     public ContributorAnalyzer(
         IOptions<GitHubOptions> options,
+        IOptions<PerformanceOptions> performanceOptions,
         ILogger<ContributorAnalyzer> logger)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _performanceOptions = performanceOptions?.Value ?? throw new ArgumentNullException(nameof(performanceOptions));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -51,8 +54,7 @@ public class ContributorAnalyzer : IContributorAnalyzer
             var allContributors = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
 
             // Use SemaphoreSlim to limit concurrent requests
-            var maxConcurrency = 10;
-            using var semaphore = new SemaphoreSlim(maxConcurrency);
+            using var semaphore = new SemaphoreSlim(_performanceOptions.MaxConcurrentRequests);
 
             var tasks = reposToCheck.Select(async repo =>
             {

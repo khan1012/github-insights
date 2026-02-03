@@ -52,7 +52,7 @@ public class TopContributorsAnalyzer : ITopContributorsAnalyzer
 
         try
         {
-            using var client = _apiClient.CreateClient();
+            var client = _apiClient.CreateClient();
 
             // Get organization members first
             var orgMembers = await FetchOrganizationMembersAsync(client, cancellationToken);

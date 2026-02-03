@@ -12,6 +12,7 @@ namespace GitHubInsights.Services;
 public class RepositoryHealthAnalyzer : IRepositoryHealthAnalyzer
 {
     private readonly GitHubOptions _options;
+    private readonly PerformanceOptions _performanceOptions;
     private readonly ICachingService _cachingService;
     private readonly IGitHubApiClient _apiClient;
     private readonly IRepositoryFetcher _repositoryFetcher;
@@ -19,12 +20,14 @@ public class RepositoryHealthAnalyzer : IRepositoryHealthAnalyzer
 
     public RepositoryHealthAnalyzer(
         IOptions<GitHubOptions> options,
+        IOptions<PerformanceOptions> performanceOptions,
         ICachingService cachingService,
         IGitHubApiClient apiClient,
         IRepositoryFetcher repositoryFetcher,
         ILogger<RepositoryHealthAnalyzer> logger)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _performanceOptions = performanceOptions?.Value ?? throw new ArgumentNullException(nameof(performanceOptions));
         _cachingService = cachingService ?? throw new ArgumentNullException(nameof(cachingService));
         _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
         _repositoryFetcher = repositoryFetcher ?? throw new ArgumentNullException(nameof(repositoryFetcher));
@@ -46,7 +49,7 @@ public class RepositoryHealthAnalyzer : IRepositoryHealthAnalyzer
             "Fetching detailed insights from GitHub API for organization {Organization}",
             _options.Organization);
 
-        using var client = _apiClient.CreateClient();
+        var client = _apiClient.CreateClient();
 
         try
         {
@@ -144,12 +147,14 @@ public class RepositoryHealthAnalyzer : IRepositoryHealthAnalyzer
     /// </summary>
     private int CalculateActivityScore(GitHubRepository repo)
     {
-        var score = repo.Stargazers_Count * 10 + repo.Forks_Count * 5 + repo.Open_Issues_Count * 2;
+        var score = repo.Stargazers_Count * _performanceOptions.ActivityScoreStarsWeight + 
+                    repo.Forks_Count * _performanceOptions.ActivityScoreForksWeight + 
+                    repo.Open_Issues_Count * _performanceOptions.ActivityScoreIssuesWeight;
 
         // Bonus for recently updated repos
         if (repo.Updated_At.HasValue && repo.Updated_At.Value > DateTime.UtcNow.AddDays(-30))
         {
-            score += 1000;
+            score += _performanceOptions.ActivityScoreRecentUpdateBonus;
         }
 
         // Penalty for archived repos
@@ -183,11 +188,11 @@ public class RepositoryHealthAnalyzer : IRepositoryHealthAnalyzer
                 ? (double)repo.Open_Issues_Count / repo.Stargazers_Count
                 : repo.Open_Issues_Count > 10 ? 1.0 : 0.0;
 
-            if (daysSinceUpdate >= 180)
+            if (daysSinceUpdate >= _performanceOptions.HealthCheckStaleDays)
             {
                 atRiskRepos.Add(repo);
             }
-            else if (daysSinceUpdate >= 30 || issueRatio > 0.5 || repo.Open_Issues_Count > 50)
+            else if (daysSinceUpdate >= _performanceOptions.HealthCheckAttentionDays || issueRatio > 0.5 || repo.Open_Issues_Count > 50)
             {
                 needsAttentionRepos.Add(repo);
             }

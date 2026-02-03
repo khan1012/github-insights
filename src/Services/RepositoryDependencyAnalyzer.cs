@@ -46,7 +46,7 @@ public class RepositoryDependencyAnalyzer : IRepositoryDependencyAnalyzer
             "Fetching dependent repositories from GitHub API for organization {Organization}",
             _options.Organization);
 
-        using var client = _apiClient.CreateClient();
+        var client = _apiClient.CreateClient();
 
         try
         {

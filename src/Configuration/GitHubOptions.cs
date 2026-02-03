@@ -13,7 +13,6 @@ public class GitHubOptions
     /// GitHub organization name (required)
     /// </summary>
     [Required(ErrorMessage = "GitHub organization name is required")]
-    [MinLength(1, ErrorMessage = "Organization name cannot be empty")]
     public string Organization { get; set; } = string.Empty;
 
     /// <summary>
@@ -31,7 +30,7 @@ public class GitHubOptions
     /// Maximum number of repositories to fetch (optional, 0 = unlimited)
     /// Useful for large organizations to reduce loading time
     /// </summary>
-    [Range(0, 10000, ErrorMessage = "Max repositories must be between 0 and 1000")]
+    [Range(0, 10000, ErrorMessage = "Max repositories must be between 0 and 10000")]
     public int MaxRepositories { get; set; } = 100;
 
     /// <summary>
